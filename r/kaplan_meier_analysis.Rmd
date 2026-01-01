@@ -13,6 +13,7 @@ library(tidyverse)
 library(readr)
 library(dplyr)
 library(gtsummary)
+library(ggplot2)
 ```
 
 
@@ -21,6 +22,7 @@ Import the data
 data <- read.csv("~/Documents/Github/bio_stat_projects/data/seer_breat_cancer_dataset.csv", sep = ",")
 ```
 
+Data Manipulation
 ```{r}
 data$Race <- ifelse(data$Race == "Other (American Indian/AK Native, Asian/Pacific Islander)", "Other", data$Race)
 data$Race <- as.factor(data$Race)
@@ -43,27 +45,50 @@ data$Grade <- as.factor(data$Grade)
 data$A.Stage <- as.factor(data$A.Stage)
 data$Estrogen.Status <- as.factor(data$Estrogen.Status)
 data$Progesterone.Status <- as.factor(data$Progesterone.Status)
-
 data$Status <- ifelse(data$Status == "Dead", 1, 0)
-
-summary(data)
-
 
 tbl_summary(data)
 
 ```
 
 
+
+
 ```{r}
-surv_object <- Surv(time = data$Survival.Months, event=data$Status)
+library(survival)
+library(survminer)
+
+fit <- survfit(Surv(Survival.Months, Status) ~ 1, data = data)
+
+# yes there is an empty plot but that disappears when you knit to pdf
+
+ggsurvplot(
+  fit,
+  data = data,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  ggtheme = theme_minimal()
+)
+
 ```
 
 
-
+Additional way to plot survival curve
 ```{r}
-fit <- survfit(surv_object ~ 1)
-summary(fit)
-plot(fit)
+ggsurvplot(
+  fit, 
+  data = data, 
+  conf.int = TRUE, 
+  risk.table = TRUE, 
+  surv.scale = "percent", 
+  xlab = "Time (Months)", 
+  ylab = "Survival Probability", 
+  title = "Kaplan-Meier Survival Curve", 
+  palette = "Dark2", 
+  censor.shape = 124, 
+  censor.size = 4, 
+  ggtheme = theme_classic()
+)
 ```
 
 
