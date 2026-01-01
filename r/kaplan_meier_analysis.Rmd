@@ -1,0 +1,73 @@
+---
+title: "kaplan_meier_analysis"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Import library 
+```{r}
+library(survival)
+library(survminer)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(gtsummary)
+```
+
+
+Import the data 
+```{r}
+data <- read.csv("~/Documents/Github/bio_stat_projects/data/seer_breat_cancer_dataset.csv", sep = ",")
+```
+
+```{r}
+data$Race <- ifelse(data$Race == "Other (American Indian/AK Native, Asian/Pacific Islander)", "Other", data$Race)
+data$Race <- as.factor(data$Race)
+
+data$Marital.Status <- as.factor(data$Marital.Status)
+
+data <- data %>%
+  mutate(
+    Marital.Status = case_when(
+      Marital.Status == "Married (including common law)" ~ "Married", 
+      Marital.Status == "Single (never married)" ~ "Single", 
+      TRUE ~ Marital.Status # Keep everything else as it
+    )
+  )
+
+data$T.Stage <- as.factor(data$T.Stage)
+data$N.Stage <- as.factor(data$N.Stage)
+data$X6th.Stage <- as.factor(data$X6th.Stage)
+data$Grade <- as.factor(data$Grade)
+data$A.Stage <- as.factor(data$A.Stage)
+data$Estrogen.Status <- as.factor(data$Estrogen.Status)
+data$Progesterone.Status <- as.factor(data$Progesterone.Status)
+
+data$Status <- ifelse(data$Status == "Dead", 1, 0)
+
+summary(data)
+
+
+tbl_summary(data)
+
+```
+
+
+```{r}
+surv_object <- Surv(time = data$Survival.Months, event=data$Status)
+```
+
+
+
+```{r}
+fit <- survfit(surv_object ~ 1)
+summary(fit)
+plot(fit)
+```
+
+
+
+
+
+
