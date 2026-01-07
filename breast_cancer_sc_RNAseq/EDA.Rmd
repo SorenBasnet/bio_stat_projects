@@ -1,0 +1,127 @@
+---
+title: "load"
+author: "Soren Basnet"
+date: "2026-01-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# library
+```{r}
+library(Seurat)
+```
+
+# load dataset 
+```{r}
+counts <- read.csv("/Users/sorenbasnet/Documents/Github/bio_stat_projects/breast_cancer_sc_RNAseq/data/GSE220671_RKIP_scRNA_counts.csv", row.names = 1) # The first column of the CSV file contains the row names, not normal data
+
+head(counts)
+
+
+seurat_obj <- CreateSeuratObject(counts = counts)
+
+# Quick QC
+seurat_obj[["percent.mt"]] <- PercentageFeatureSet(seurat_obj, pattern = "^MT-")
+VlnPlot(seurat_obj, features=c("nFeature_RNA","nCount_RNA","percent.mt"))
+
+# Normalize & cluster
+seurat_obj <- NormalizeData(seurat_obj)
+seurat_obj <- FindVariableFeatures(seurat_obj)
+seurat_obj <- ScaleData(seurat_obj)
+seurat_obj <- RunPCA(seurat_obj)
+seurat_obj <- FindNeighbors(seurat_obj, dims=1:10)
+seurat_obj <- FindClusters(seurat_obj)
+seurat_obj_visualize <- RunUMAP(seurat_obj, dims=1:10)
+#ElbowPlot(seurat_obj)
+
+#seurat_obj <- JackStraw(seurat_obj, num.replicate = 100)
+#seurat_obj <- ScoreJackStraw(seurat_obj, dims = 1:20)
+#JackStrawPlot(seurat_obj, dims = 1:20)
+
+DimPlot(seurat_obj_visualize, reduction="umap", label=TRUE)
+
+
+
+
+
+```
+
+In a gene × cell count matrix, the file usually looks like this:
+
+| Gene  | Cell1 | Cell2 | Cell3 |
+| ----- | ----- | ----- | ----- |
+| ACTB  | 5     | 3     | 0     |
+| GAPDH | 2     | 0     | 1     |
+| TP53  | 0     | 1     | 2     |
+
+
+First column (Gene) is gene names.
+
+The rest of the columns are UMI counts per cell.
+
+
+## 3D plot 
+
+The standard DimPlot() cannot render 3D. You need the plotly library to make an interactive 3D rotation.
+```{r}
+seurat_obj_visualize_3d <- RunUMAP(seurat_obj, dims = 1:10, n.components = 3L)
+
+library(plotly)
+
+# 1. Extract the UMAP coordinates
+plot_data <- FetchData(seurat_obj_visualize_3d, vars = c("umap_1", "umap_2", "umap_3", "seurat_clusters"))
+
+# 2. Create the interactive 3D plot
+plot_ly(data = plot_data, 
+        x = ~umap_1, y = ~umap_2, z = ~umap_3, 
+        color = ~seurat_clusters, 
+        type = "scatter3d", 
+        mode = "markers", 
+        marker = list(size = 2)) # Adjust size so it's not a blurry mess
+
+
+```
+
+
+
+```{r}
+markers <- FindAllMarkers(
+  seurat_obj_visualize,
+  only.pos = TRUE,
+  min.pct = 0.25,
+  logfc.threshold = 0.25
+)
+markers
+
+unique(markers$cluster)
+
+
+```
+
+```{r}
+FeaturePlot(seurat_obj, features = c("EPCAM", "VIM", "CD3D"))
+DotPlot(seurat_obj, features = c("EPCAM", "VIM", "CD3D"))
+
+```
+
+
+```{r}
+
+levels(Idents(seurat_obj_visualize))
+
+
+new_ids <- c(
+  "Epithelial",
+  "Mesenchymal",
+  "Immune",
+  "Cycling",
+  "Unknown"
+)
+names(new_ids) <- levels(seurat_obj_visualize)
+seurat_obj <- RenameIdents(seurat_obj_visualize, new_ids)
+```
+
+

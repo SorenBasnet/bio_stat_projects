@@ -1,1 +1,4 @@
 data/seer_breat_cancer_dataset.csv
+.Rproj.user
+breast_cancer_sc_RNAseq/data
+breast_cancer_sc_RNAseq/breast_cancer_sc_RNAseq.Rproj
